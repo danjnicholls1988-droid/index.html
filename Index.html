@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Wrestling Booker</title>
+    <style>
+        :root { 
+            --neon-blue: #00f2ff; 
+            --neon-gold: #ffd700; 
+            --neon-green: #00ff88;
+            --neon-red: #ff0044;
+            --bg: #0a0a0a; 
+        }
+        * { box-sizing: border-box; }
+        body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            padding-bottom: 100px;
+        }
+        .header { 
+            text-align: center; 
+            padding: 15px; 
+            border-bottom: 2px solid var(--neon-blue);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
+        .header-top h2 { margin: 0; flex: 1; }
+        .coins { 
+            background: var(--neon-gold); 
+            color: black; 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+        #calendar { font-size: 14px; color: var(--neon-blue); margin-top: 10px; }
+        
+        .roster-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            padding: 10px; 
+        }
+        .card { 
+            border: 2px solid #333; 
+            border-radius: 8px; 
+            padding: 5px; 
+            text-align: center; 
+            background: #1a1a1a; 
+            position: relative; 
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .card:hover { 
+            border-color: var(--neon-blue); 
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+        .card.champion { 
+            border: 3px solid var(--neon-gold); 
+            box-shadow: 0 0 10px var(--neon-gold); 
+        }
+        .card.selected { 
+            border: 3px solid var(--neon-green); 
+            box-shadow: 0 0 15px var(--neon-green);
+        }
+        .card img { 
+            width: 100%; 
+            height: auto; 
+            image-rendering: pixelated; 
+            background: #000; 
+            border-radius: 4px;
+        }
+        .badge { 
+            position: absolute; 
+            top: 5px; 
+            right: 5px; 
+            padding: 2px 5px; 
+            font-size: 10px; 
+            border-radius: 4px; 
+        }
+        .face { background: #00ff88; color: black; }
+        .heel { background: #ff0044; color: white; }
+        
+        .nav { 
+            position: fixed; 
+            bottom: 0; 
+            width: 100%; 
+            background: #111; 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 10px 0; 
+            border-top: 2px solid var(--neon-blue); 
+            gap: 5px;
+        }
+        .nav button { 
+            flex: 1; 
+            background: #222; 
+            color: white; 
+            border: 1px solid var(--neon-blue); 
+            padding: 12px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        .nav button.active { 
+            background: var(--neon-blue); 
+            color: black; 
+        }
+        
+        .filter-bar { 
+            display: flex; 
+            overflow-x: auto; 
+            padding: 10px; 
+            gap: 10px; 
+            background: #151515; 
+        }
+        button { 
+            background: #222; 
+            color: white; 
+            border: 1px solid var(--neon-blue); 
+            padding: 8px 12px; 
+            cursor: pointer; 
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        button:hover { 
+            background: #333; 
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+        button:disabled { 
+            opacity: 0.5; 
+            border-color: #555; 
+            cursor: not-allowed;
+        }
+        button.active { 
+            background: var(--neon-blue); 
+            color: black; 
+            border-color: var(--neon-blue);
+        }
+        
+        .tab-content { 
+            padding: 10px; 
+            display: none; 
+        }
+        .tab-content.active { 
+            display: block; 
+        }
+        .hidden { display: none; }
+        
+        /* BOOKING ENGINE STYLES */
+        .booking-section { 
+            margin-bottom: 20px; 
+            border: 2px solid var(--neon-blue); 
+            border-radius: 8px; 
+            padding: 15px; 
+            background: #1a1a1a;
+        }
+        .booking-title { 
+            font-size: 16px; 
+            font-weight: bold; 
+            color: var(--neon-gold); 
+            margin-bottom: 10px;
+        }
+        .match-slot { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 10px; 
+            background: #222; 
+            border: 1px solid #333; 
+            margin-bottom: 8px; 
+            border-radius: 4px;
+        }
+        .match-slot-label { 
+            font-weight: bold; 
+            color: var(--neon-blue); 
+            min-width: 100px; 
+        }
+        .match-slot-fighters { 
+            flex: 1; 
+            text-align: center; 
+            margin: 0 10px; 
+            font-size: 12px;
+        }
+        .match-slot-btn { 
+            padding: 6px 10px; 
+            font-size: 11px; 
+        }
+        .title-checkbox { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            margin-top: 5px;
+        }
+        .title-checkbox input { 
+            cursor: pointer; 
+        }
+        
+        .wrestler-selector { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            padding: 10px; 
+            background: #151515; 
+            border-radius: 4px;
+        }
+        .selector-card { 
+            border: 2px solid #333; 
+            padding: 8px; 
+            text-align: center; 
+            cursor: pointer; 
+            background: #1a1a1a;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .selector-card:hover { 
+            border-color: var(--neon-blue); 
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+        }
+        .selector-card.unavailable { 
+            opacity: 0.4; 
+            cursor: not-allowed; 
+            border-color: #555;
+        }
+        .selector-card img { 
+            width: 100%; 
+            height: auto; 
+            border-radius: 3px;
+        }
+        
+        /* SIMULATION RESULTS */
+        .simulation-results { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+            padding: 15px;
+        }
+        .match-result { 
+            border: 2px solid var(--neon-blue); 
+            border-radius: 8px; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a1a1a 100%);
+        }
+        .match-result.title-match { 
+            border-color: var(--neon-gold); 
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+        .match-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px;
+        }
+        .match-name { 
+            font-weight: bold; 
+            color: var(--neon-gold);
+        }
+        .star-rating { 
+            font-size: 18px; 
+            color: var(--neon-gold);
+        }
+        .match-fighters { 
+            display: flex; 
+            justify-content: space-around; 
+            align-items: center; 
+            margin: 10px 0;
+        }
+        .fighter-info { 
+            text-align: center; 
+            flex: 1;
+        }
+        .fighter-name { 
+            font-weight: bold; 
+            color: var(--neon-blue);
+        }
+        .fighter-pop { 
+            font-size: 12px; 
+            color: #aaa;
+        }
+        .vs-text { 
+            color: var(--neon-red); 
+            font-weight: bold; 
+            margin: 0 15px;
+        }
+        .match-winner { 
+            padding: 8px; 
+            background: var(--neon-green); 
+            color: black; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin-top: 10px;
+        }
+        .match-champion-change { 
+            padding: 8px; 
+            background: var(--neon-gold); 
+            color: black; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin-top: 8px;
+        }
+        .show-summary { 
+            border: 2px solid var(--neon-gold); 
+            padding: 15px; 
+            background: #1a1a1a; 
+            border-radius: 8px; 
+            margin-top: 20px;
+        }
+        .summary-stat { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 0; 
+            border-bottom: 1px solid #333;
+        }
+        .summary-stat:last-child { 
+            border-bottom: none;
+        }
+        
+        /* SHOP STYLES */
+        .shop-container { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+            padding: 15px;
+        }
+        .shop-pack { 
+            border: 2px solid var(--neon-blue); 
+            border-radius: 8px; 
+            padding: 15px; 
+            background: #1a1a1a; 
+            text-align: center;
+        }
+        .pack-price { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: var(--neon-gold); 
+            margin: 10px 0;
+        }
+        .pack-button { 
+            width: 100%; 
+            padding: 12px; 
+            font-size: 14px; 
+            font-weight: bold;
+        }
+        .pack-button:disabled { 
+            background: #333; 
+            color: #666;
+        }
+        .locked-wrestlers { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 2px solid #333; 
+            border-radius: 8px; 
+            background: #1a1a1a;
+        }
+        .locked-wrestlers h3 { 
+            color: var(--neon-blue); 
+            margin-top: 0;
+        }
+        .locked-count { 
+            font-size: 18px; 
+            font-weight: bold; 
+            color: var(--neon-gold);
+        }
+        
+        /* STATS STYLES */
+        .stats-container { 
+            padding: 15px; 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px;
+        }
+        .stat-card { 
+            border: 2px solid var(--neon-blue); 
+            border-radius: 8px; 
+            padding: 15px; 
+            background: #1a1a1a;
+        }
+        .stat-card h3 { 
+            color: var(--neon-gold); 
+            margin-top: 0;
+        }
+        .stat-row { 
+            display: flex; 
+            justify-content: space-between; 
+            padding: 8px 0; 
+            border-bottom: 1px solid #333;
+        }
+        .stat-row:last-child { 
+            border-bottom: none;
+        }
+        .stat-value { 
+            color: var(--neon-blue); 
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-top">
+        <h2 id="promo-name">NEO-ANIME WRESTLING</h2>
+        <div class="coins">💰 <span id="coins">0</span></div>
+    </div>
+    <div id="calendar">Year 1 - January - Week 1</div>
+</div>
+
+<!-- ROSTER TAB -->
+<div id="roster-tab" class="tab-content active">
+    <div class="filter-bar">
+        <button onclick="filterRoster('all')" class="active">ALL</button>
+        <button onclick="filterRoster('male')">MALE</button>
+        <button onclick="filterRoster('female')">FEMALE</button>
+        <button onclick="filterRoster('face')">FACE</button>
+        <button onclick="filterRoster('heel')">HEEL</button>
+    </div>
+    <div id="roster-view" class="roster-grid"></div>
+</div>
+
+<!-- BOOKING TAB -->
+<div id="booking-tab" class="tab-content">
+    <div style="padding: 15px;">
+        <div class="booking-section">
+            <div class="booking-title">📋 MATCH CARD</div>
+            <div id="match-slots"></div>
+            <button onclick="simulateShow()" id="simulate-btn" style="width: 100%; padding: 12px; font-size: 14px; font-weight: bold; margin-top: 15px;">🎬 SIMULATE SHOW</button>
+        </div>
+        <div id="simulation-output"></div>
+    </div>
+</div>
+
+<!-- SHOP TAB -->
+<div id="shop-tab" class="tab-content">
+    <div class="shop-container">
+        <div class="shop-pack">
+            <div class="booking-title">🎟️ MYSTERY PACK</div>
+            <div style="color: #aaa; margin-bottom: 10px;">Unlock a random wrestler!</div>
+            <div class="pack-price">1,000 💰</div>
+            <button class="pack-button" onclick="buyPack()" id="buy-pack-btn">BUY PACK</button>
+        </div>
+        <div class="locked-wrestlers">
+            <h3>🔒 LOCKED WRESTLERS</h3>
+            <div class="locked-count" id="locked-count">0</div>
+            <div style="font-size: 12px; color: #aaa; margin-top: 10px;">Unlock packs to add them to your roster</div>
+        </div>
+    </div>
+</div>
+
+<!-- STATS TAB -->
+<div id="stats-tab" class="tab-content">
+    <div class="stats-container">
+        <div class="stat-card">
+            <h3>📊 ROSTER STATS</h3>
+            <div class="stat-row">
+                <span>Total Wrestlers:</span>
+                <span class="stat-value" id="stat-total">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Male Wrestlers:</span>
+                <span class="stat-value" id="stat-male">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Female Wrestlers:</span>
+                <span class="stat-value" id="stat-female">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Faces:</span>
+                <span class="stat-value" id="stat-face">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Heels:</span>
+                <span class="stat-value" id="stat-heel">0</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <h3>🏆 CHAMPIONSHIP</h3>
+            <div class="stat-row">
+                <span>Current Champion:</span>
+                <span class="stat-value" id="stat-champ">None</span>
+            </div>
+            <div class="stat-row">
+                <span>Championship Defenses:</span>
+                <span class="stat-value" id="stat-defenses">0</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <h3>💰 ECONOMY</h3>
+            <div class="stat-row">
+                <span>Total Coins Earned:</span>
+                <span class="stat-value" id="stat-earned">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Shows Completed:</span>
+                <span class="stat-value" id="stat-shows">0</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+    <button onclick="switchTab('roster-tab')" class="active">🎪 ROSTER</button>
+    <button onclick="switchTab('booking-tab')">📋 BOOK</button>
+    <button onclick="switchTab('shop-tab')">🛍️ SHOP</button>
+    <button onclick="switchTab('stats-tab')">📊 STATS</button>
+</nav>
+
+<script>
+    // ========== GAME STATE ==========
+    const gameState = {
+        year: 1,
+        month: 0, // 0-11
+        week: 1, // 1-4
+        coins: 5000,
+        totalEarned: 0,
+        showsCompleted: 0,
+        championshipDefenses: 0,
+        selectedRosterFilter: 'all',
+        bookingSelections: {
+            opener: [null, null],
+            mid1: [null, null],
+            mid2: [null, null],
+            coMain: [null, null],
+            main: [null, null]
+        },
+        titleMatches: {},
+        wrestlers: [],
+        lockedWrestlers: []
+    };
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    // ========== INITIAL WRESTLER DATABASE ==========
+    const initialWrestlers = [
+        { name: "Neon Volt", gender: "male", side: "face", era: "Modern", pop: 88, champ: true, locked: false },
+        { name: "Viper Vane", gender: "male", side: "heel", era: "Attitude", pop: 94, champ: false, locked: false },
+        { name: "Sakura Strike", gender: "female", side: "face", era: "Modern", pop: 90, champ: false, locked: false },
+        { name: "Shadow Oni", gender: "male", side: "heel", era: "Attitude", pop: 95, champ: false, locked: false },
+        { name: "The Joshi Legend", gender: "female", side: "face", era: "Modern", pop: 92, champ: false, locked: false },
+        { name: "Omega Zero", gender: "male", side: "heel", era: "Modern", pop: 98, champ: false, locked: false },
+        { name: "Cosmic Blade", gender: "male", side: "face", era: "Golden", pop: 85, champ: false, locked: false },
+        { name: "Luna Eclipse", gender: "female", side: "heel", era: "Modern", pop: 89, champ: false, locked: false },
+        { name: "Phoenix Rising", gender: "female", side: "face", era: "Modern", pop: 87, champ: false, locked: false },
+        { name: "Steel Titan", gender: "male", side: "heel", era: "Golden", pop: 91, champ: false, locked: false },
+        { name: "Dragon Fist", gender: "male", side: "face", era: "Attitude", pop: 86, champ: false, locked: false },
+        { name: "Cyber Angel", gender: "female", side: "heel", era: "Modern", pop: 84, champ: false, locked: false },
+        { name: "Inferno King", gender: "male", side: "heel", era: "Modern", pop: 93, champ: false, locked: false },
+        { name: "Crystal Queen", gender: "female", side: "face", era: "Modern", pop: 88, champ: false, locked: false },
+        { name: "Thunder Bolt", gender: "male", side: "face", era: "Attitude", pop: 90, champ: false, locked: false },
+        { name: "Midnight Phantom", gender: "male", side: "heel", era: "Attitude", pop: 92, champ: false, locked: false },
+        { name: "Starlight Maiden", gender: "female", side: "face", era: "Modern", pop: 91, champ: false, locked: false },
+        { name: "Venom Striker", gender: "male", side: "heel", era: "Modern", pop: 87, champ: false, locked: false },
+        { name: "Aurora Nexus", gender: "female", side: "heel", era: "Modern", pop: 86, champ: false, locked: false },
+        { name: "Blaze Warrior", gender: "male", side: "face", era: "Golden", pop: 83, champ: false, locked: false },
+        { name: "Mystic Sage", gender: "male", side: "face", era: "Attitude", pop: 89, champ: false, locked: false },
+        { name: "Shadow Empress", gender: "female", side: "heel", era: "Attitude", pop: 93, champ: false, locked: false },
+        { name: "Solar Flare", gender: "female", side: "face", era: "Modern", pop: 85, champ: false, locked: false },
+        { name: "Chaos Lord", gender: "male", side: "heel", era: "Modern", pop: 96, champ: false, locked: false },
+        { name: "Divine Ascension", gender: "female", side: "face", era: "Golden", pop: 82, champ: false, locked: false },
+        { name: "Crimson Demon", gender: "male", side: "heel", era: "Attitude", pop: 94, champ: false, locked: false },
+        { name: "Ethereal Guard", gender: "female", side: "face", era: "Modern", pop: 83, champ: false, locked: false },
+        { name: "Void Master", gender: "male", side: "heel", era: "Modern", pop: 97, champ: false, locked: false },
+        { name: "Lunar Siren", gender: "female", side: "heel", era: "Modern", pop: 88, champ: false, locked: false },
+        { name: "Radiant Champion", gender: "male", side: "face", era: "Golden", pop: 84, champ: false, locked: false }
+    ];
+
+    // ========== INITIALIZATION ==========
+    function initGame() {
+        gameState.wrestlers = JSON.parse(JSON.stringify(initialWrestlers));
+        gameState.lock
